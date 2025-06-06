@@ -5,12 +5,12 @@ Imports System.Text
 
 
 
-
 Public Class Form1
     Private Class Etiqueta
         Public Nombre As String
         Public Etiqueta As String
-
+        Public ancho As String
+        Public alto As String
         Public Overrides Function ToString() As String
             Return Nombre
         End Function
@@ -99,37 +99,65 @@ Public Class Form1
 ^FT55,224^A0N,52,50^FH\^FD<Precio>^FS
 ^PQ1,0,1,Y^XZ"
 
+
+
+    ' Lista global para mantener las etiquetas
+    Private listaEtiquetas As New List(Of Etiqueta)
+
+
+    ' Tus cadenas ZPL (Prueba, Bodega_Supermercado, etc) quedan igual...
+
+    ' ... aquí van tus variables Prueba, Bodega_Supermercado, Venta_Agricola, etc ...
+
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim Etiqueta_A_V As Etiqueta = New Etiqueta
+        ' Creo las etiquetas
+        Dim Etiqueta_A_V As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Venta 3x5 Agricola",
+            .Etiqueta = Venta_Agricola,
+            .ancho = "2",
+            .alto = "1.3"
+        }
+        Dim Etiqueta_A_B As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Bodega 3x5 Agricola",
+            .Etiqueta = Bodega_Agricola,
+            .ancho = "2",
+            .alto = "1.3"
+        }
+        Dim Etiqueta_S_B As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Bodega 3x5 Supermercado",
+            .Etiqueta = Bodega_Supermercado,
+            .ancho = "2",
+            .alto = "1.3"
+        }
+        Dim Etiqueta_S_MIX As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Bodega 5x10 Supermercado",
+            .Etiqueta = Mixta_Supermercado,
+            .ancho = "4",
+            .alto = "2"
+        }
+        Dim Etiqueta_J As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Jorge",
+            .Etiqueta = Prueba
+        }
+        Dim Etiqueta_v As Etiqueta = New Etiqueta With {
+            .Nombre = "Etiqueta Vacia",
+            .Etiqueta = ""
+        }
 
-        Etiqueta_A_V.Nombre = "Etiqueta Venta 3x5 Agricola"
-        Etiqueta_A_V.Etiqueta = Venta_Agricola
-        Dim Etiqueta_A_B As Etiqueta = New Etiqueta
+        ' Limpio y agrego las etiquetas a la lista global
+        listaEtiquetas.Clear()
+        listaEtiquetas.Add(Etiqueta_A_V)
+        listaEtiquetas.Add(Etiqueta_A_B)
+        listaEtiquetas.Add(Etiqueta_S_B)
+        listaEtiquetas.Add(Etiqueta_S_MIX)
+        listaEtiquetas.Add(Etiqueta_J)
+        listaEtiquetas.Add(Etiqueta_v)
 
-        Etiqueta_A_B.Nombre = "Etiqueta Bodega 3x5 Agricola"
-        Etiqueta_A_B.Etiqueta = Bodega_Agricola
-        Dim Etiqueta_S_B As Etiqueta = New Etiqueta
-
-        Etiqueta_S_B.Nombre = "Etiqueta Bodega 3x5 Supermercado"
-        Etiqueta_S_B.Etiqueta = Bodega_Supermercado
-        Dim Etiqueta_S_MIX As Etiqueta = New Etiqueta
-
-        Etiqueta_S_MIX.Nombre = "Etiqueta Bodega 5x10 Supermercado"
-        Etiqueta_S_MIX.Etiqueta = Mixta_Supermercado
-        Dim Etiqueta_J As Etiqueta = New Etiqueta
-
-        Etiqueta_J.Nombre = "Etiqueta Jorge"
-        Etiqueta_J.Etiqueta = Prueba
-
-
-
-        Combo_Etiquetas.Items.Add(Etiqueta_A_V)
-        Combo_Etiquetas.Items.Add(Etiqueta_A_B)
-        Combo_Etiquetas.Items.Add(Etiqueta_S_B)
-        Combo_Etiquetas.Items.Add(Etiqueta_S_MIX)
-        Combo_Etiquetas.Items.Add(Etiqueta_J)
-
-
+        ' Limpio y lleno el ComboBox solo con los nombres
+        Combo_Etiquetas.Items.Clear()
+        For Each etq As Etiqueta In listaEtiquetas
+            Combo_Etiquetas.Items.Add(etq.Nombre)
+        Next
 
     End Sub
 
@@ -138,15 +166,21 @@ Public Class Form1
     End Sub
 
     Private Sub Combo_Etiquetas_SelectedIndexChanged(sender As Object, e As EventArgs) Handles Combo_Etiquetas.SelectedIndexChanged
-        ZPACT = Combo_Etiquetas.SelectedItem
-
+        Dim nombreSeleccionado As String = Combo_Etiquetas.SelectedItem.ToString()
+        ' Busco la etiqueta en la lista
+        ZPACT = listaEtiquetas.Find(Function(x) x.Nombre = nombreSeleccionado)
+        If ZPACT IsNot Nothing Then
+            Txt_zpl.Text = ZPACT.Etiqueta
+            Txt_Alto.Text = ZPACT.alto
+            Txt_Ancho.Text = ZPACT.ancho
+        End If
     End Sub
 
     Public Sub EnviarEtiqueta(ZPL As String)
         Dim bmp1 As Bitmap = Nothing
         Dim fechaActual As String = DateTime.Now.ToString("dd/MM/yyyy") ' Formato de fecha como en B4A
-        Dim printerIP As String = "192.168.1.178" ' IP de tu impresora
-        Dim printerPort As Integer = 9100         ' Puerto típico para Zebra
+        Dim printerIP As String = Txt_ip.Text  ' IP de tu impresora
+        Dim printerPort As Integer = Txt_Puerto.Text         ' Puerto típico para Zebra
         Dim cliente As TcpClient = Nothing
 
         Try
@@ -185,7 +219,7 @@ Public Class Form1
     End Sub
 
     Private Sub Btn_Impimir_Click(sender As Object, e As EventArgs) Handles Btn_Impimir.Click
-        EnviarEtiqueta(ZPACT.Etiqueta)
+        EnviarEtiqueta(Txt_zpl.Text)
     End Sub
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Btn_Calibrar.Click
@@ -196,15 +230,14 @@ Public Class Form1
     End Sub
 
     Private Sub Btn_ver_Click(sender As Object, e As EventArgs) Handles Btn_ver.Click
-        Dim zpl As String = ZPACT.Etiqueta
+        Dim zpl As String = Txt_zpl.Text
         Dim url As String
-        ' URL con DPI y tamaño de etiqueta pequeña
-        If (ZPACT.Nombre = "Etiqueta Bodega 5x10 Supermercado") Then
-            url = "https://api.labelary.com/v1/printers/8dpmm/labels/4x2/0/"
-        Else
-            url = "https://api.labelary.com/v1/printers/8dpmm/labels/2x1.3/0/"
 
-        End If
+        ' URL con DPI y tamaño de etiqueta pequeña
+
+        url = $"https://api.labelary.com/v1/printers/8dpmm/labels/{Txt_Ancho.Text}x{Txt_Alto.Text}/0/"
+
+
 
         Dim request As HttpWebRequest = CType(WebRequest.Create(url), HttpWebRequest)
         request.Method = "POST"
@@ -230,6 +263,14 @@ Public Class Form1
             MessageBox.Show("Error al generar la etiqueta: " & ex.Message)
         End Try
         Imagen.Visible = True
+
+    End Sub
+
+    Private Sub RichTextBox1_TextChanged(sender As Object, e As EventArgs) Handles Txt_zpl.TextChanged
+
+    End Sub
+
+    Private Sub TextBox1_TextChanged(sender As Object, e As EventArgs) Handles Txt_Puerto.TextChanged
 
     End Sub
 End Class
