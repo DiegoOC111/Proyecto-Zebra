@@ -1,4 +1,6 @@
-﻿Imports System.Net.Sockets
+﻿Imports System.IO
+Imports System.Net
+Imports System.Net.Sockets
 Imports System.Text
 
 
@@ -18,6 +20,21 @@ Public Class Form1
 
 
     Dim ZPACT As Etiqueta
+    Dim Prueba As String = "^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR3,3~SD10^JUS^LRN^CI0^XZ" & vbCrLf &
+"^XA" & vbCrLf &
+"^MMT" & vbCrLf &
+"^PW432" & vbCrLf &
+"^LL0240" & vbCrLf &
+"^LS0" & vbCrLf &
+"^FO96,64^GFA,02688,02688,00028,:Z64:" & vbCrLf &
+"eJxjYBgFo2BYApN2k46Lr4SdPRfKrWwvO3o7eX31ilTFjddG5UblRuVG5UaKHMWAnyGAgb8Cu1zExsszOL2wSjFP8ApZwll5AKccXyBWOYaIUyFLOIJwuMXw8gwOD1wuZWnAJTMKBicAAKcXOxo=:96C3" & vbCrLf &
+"^FT30,37^A0N,23,24^FH\^FD<Des1>^FS" & vbCrLf &
+"^SL0" & vbCrLf &
+"^FT313,228^A0N,18,16" & vbCrLf &
+"^FC%,{,#" & vbCrLf &
+"^FD%d-%m-%Y^FS" & vbCrLf &
+"^FT30,64^A0N,23,24^FH\^FD<Des2>^FS" & vbCrLf &
+"^PQ1,0,1,Y^XZ"
 
     Dim Bodega_Supermercado As String = "^XA~TA000~JSN^LT0^MNW^MTD^PON^PMN^LH0,0^JMA^PR3,3~SD10^JUS^LRN^CI0^XZ" & vbCrLf &
 "^XA" & vbCrLf &
@@ -99,7 +116,10 @@ Public Class Form1
 
         Etiqueta_S_MIX.Nombre = "Etiqueta Bodega 5x10 Supermercado"
         Etiqueta_S_MIX.Etiqueta = Mixta_Supermercado
+        Dim Etiqueta_J As Etiqueta = New Etiqueta
 
+        Etiqueta_J.Nombre = "Etiqueta Jorge"
+        Etiqueta_J.Etiqueta = Prueba
 
 
 
@@ -107,6 +127,8 @@ Public Class Form1
         Combo_Etiquetas.Items.Add(Etiqueta_A_B)
         Combo_Etiquetas.Items.Add(Etiqueta_S_B)
         Combo_Etiquetas.Items.Add(Etiqueta_S_MIX)
+        Combo_Etiquetas.Items.Add(Etiqueta_J)
+
 
 
     End Sub
@@ -123,7 +145,7 @@ Public Class Form1
     Public Sub EnviarEtiqueta(ZPL As String)
         Dim bmp1 As Bitmap = Nothing
         Dim fechaActual As String = DateTime.Now.ToString("dd/MM/yyyy") ' Formato de fecha como en B4A
-        Dim printerIP As String = "192.168.1.166" ' IP de tu impresora
+        Dim printerIP As String = "192.168.1.178" ' IP de tu impresora
         Dim printerPort As Integer = 9100         ' Puerto típico para Zebra
         Dim cliente As TcpClient = Nothing
 
@@ -171,5 +193,43 @@ Public Class Form1
 ~JC
 ^XZ"
         EnviarEtiqueta(ZP)
+    End Sub
+
+    Private Sub Btn_ver_Click(sender As Object, e As EventArgs) Handles Btn_ver.Click
+        Dim zpl As String = ZPACT.Etiqueta
+        Dim url As String
+        ' URL con DPI y tamaño de etiqueta pequeña
+        If (ZPACT.Nombre = "Etiqueta Bodega 5x10 Supermercado") Then
+            url = "https://api.labelary.com/v1/printers/8dpmm/labels/4x2/0/"
+        Else
+            url = "https://api.labelary.com/v1/printers/8dpmm/labels/2x1.3/0/"
+
+        End If
+
+        Dim request As HttpWebRequest = CType(WebRequest.Create(url), HttpWebRequest)
+        request.Method = "POST"
+        request.ContentType = "application/x-www-form-urlencoded"
+        request.Accept = "image/png"
+
+        Dim zplBytes As Byte() = Encoding.UTF8.GetBytes(zpl)
+        request.ContentLength = zplBytes.Length
+
+        Try
+            Using stream As Stream = request.GetRequestStream()
+                stream.Write(zplBytes, 0, zplBytes.Length)
+            End Using
+
+            Using response As WebResponse = request.GetResponse()
+                Using responseStream As Stream = response.GetResponseStream()
+                    Dim image As Image = Image.FromStream(responseStream)
+                    Imagen.Image = image
+                    Imagen.SizeMode = PictureBoxSizeMode.Zoom
+                End Using
+            End Using
+        Catch ex As WebException
+            MessageBox.Show("Error al generar la etiqueta: " & ex.Message)
+        End Try
+        Imagen.Visible = True
+
     End Sub
 End Class
